@@ -1,5 +1,5 @@
 ## Graphical representation of SF Police data.
-**Public data is used**
+
 This app shows the following:
-* Number of incidents occurred each day of the week.
-* Resolution rate per incident category
+* [Number of incidents occurred each day of the week.](https://github.com/aaggarwal2805/PythonApps/blob/master/Data_visualization/output/Days.png)
+* [Resolution rate per incident category](https://github.com/aaggarwal2805/PythonApps/blob/master/Data_visualization/output/Type.png)
