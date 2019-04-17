@@ -11,13 +11,10 @@ MY_FILE = "C:/Users/aagga/Documents/SmallProjects/PythonApps/Data_visualization/
 def parse(raw_file, delimiter):
     """Parses a raw CSV file to a JSON-like object"""
 
-    # Open CSV file, and safely close it when we're done
     opened_file = open(raw_file)
 
-    # Read the CSV data
     csv_data = csv.reader(opened_file, delimiter=delimiter)
 
-    # Setup an empty list
     parsed_data = []
 
     # Skip over the first line of the file for the headers
