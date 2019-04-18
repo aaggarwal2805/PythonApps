@@ -1,45 +1,52 @@
-from collections import Counter
-
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
+import os
 
+TYPE_PLOT_FILENAME = "Type.png"
+DAYS_PLOT_FILENAME = "Days.png"
 
-MY_FILE = "C:/Users/aagga/Documents/SmallProjects/PythonApps/Data_visualization/input/sample_sfpd_incident_all.csv"
-
-
-def parse(raw_file, delimiter):
-    """Parses a raw CSV file to a JSON-like object"""
-
-    opened_file = open(raw_file)
-
-    csv_data = csv.reader(opened_file, delimiter=delimiter)
-
+def parse(raw_file):
+    """
+    Parses CSV file to create dictionary entries
+    """
     parsed_data = []
-
-    # Skip over the first line of the file for the headers
-    fields = csv_data.next()
-
-    # Iterate over each row of the csv file, zip together field -> value
-    for row in csv_data:
-        parsed_data.append(dict(zip(fields, row)))
-
-    # Close the CSV file
-    opened_file.close()
+    with open(raw_file, 'r') as r:
+        rows = csv.reader(r)
+        fields = rows.next()
+        counter = 0
+        for r in rows:
+            parsed_data.append(dict(zip(fields, r)))
 
     return parsed_data
 
+def fetch_incident_by_days(parsed_data):
+    """
+    Parse and return number of incidents by day of the week
+    """
+    incident_counter = dict()
 
-def visualize_days():
+    for incident in parsed_data:
+        day_of_week = incident['DayOfWeek']
+        if day_of_week in incident_counter:
+            incident_counter[day_of_week] += 1
+        else:
+            incident_counter[day_of_week] = 1
+
+    return incident_counter
+
+
+def visualize_days(parsed_data, output_dir):
     """Visualize data by day of week"""
-    data_file = parse(MY_FILE, ",")
-    # Returns a dict where it sums the total values for each key.
-    # In this case, the keys are the DaysOfWeek, and the values are
-    # a count of incidents.
-    counter = Counter(item["DayOfWeek"] for item in data_file)
 
-    # Separate out the counter to order it correctly when plotting.
-    data_list = [
+    # Returning no. of incidents by each day of the week
+    counter = fetch_incident_by_days(parsed_data)
+
+    # data_list = fetch_incident_by_days.keys()
+
+    # Separating the counter to have an ordered list
+    y_values = [
                   counter["Monday"],
                   counter["Tuesday"],
                   counter["Wednesday"],
@@ -48,64 +55,92 @@ def visualize_days():
                   counter["Saturday"],
                   counter["Sunday"]
                 ]
-    day_tuple = tuple(["Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"])
 
-    # Assign the data to a plot
-    plt.plot(data_list)
+    # Creating labels for x-axis
+    x_labels = tuple(["Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"])
 
-    # Assign labels to the plot from day_list
-    plt.xticks(range(len(day_tuple)), day_tuple)
+    # Assigning the data to plot
+    plt.plot(y_values)
 
-    # Save the graph!
-    # If you look at new-coder/dataviz/tutorial_source, you should see
-    # the PNG file, "Days.png".  This is our graph!
-    plt.savefig("C:/Users/aagga/Documents/SmallProjects/PythonApps/Data_visualization/output/Days.png")
+    # Assigning xticks on x-axis
+    plt.xticks(range(len(x_labels)), x_labels)
 
-    # Close figure
-    plt.clf()
+    # Save the graph and show the figure
+    file_name = os.path.join(output_dir, DAYS_PLOT_FILENAME)
+    plt.savefig(file_name)
+    plt.show()
 
 
-def visualize_type():
-    """Visualize data by category in a bar graph"""
-    data_file = parse(MY_FILE, ",")
-    # Same as before, this returns a dict where it sums the total
-    # incidents per Category.
-    counter = Counter(item["Category"] for item in data_file)
+def fetch_incident_by_category_and_resolution(parsed_data):
+    """
+    Parse and return count of total incidents and unresolved incidents by category
+    """
+    incident_counter = dict()
 
-    # Set the labels which are based on the keys of our counter.
-    labels = tuple(counter.keys())
+    for incident in parsed_data:
+        category = incident['Category']
+        resolution = incident['Resolution']
+        if category in incident_counter:
+            incident_counter[category][0] += 1
+            if resolution == "NONE":
+                incident_counter[category][1] += 1
+        else:
+            if resolution == "NONE":
+                incident_counter[category] = [1, 1]
+            else:
+                incident_counter[category] = [1, 0]
 
-    # Set where the labels hit the x-axis
-    xlocations = np.arange(len(labels)) + 0.5
+    return incident_counter
+
+
+def visualize_type(parsed_data, output_dir):
+    """Data visualization of total incidents and fraction
+    of unresolved incidents per category via bar graph"""
+
+    # Fetching incident data by category
+    counter = fetch_incident_by_category_and_resolution(parsed_data)
+
+    # List of total incidents by Category
+    # list of unsolved incidents by Category
+    y1_values = [item[0] for item in counter.values()]
+    y2_values = [item[1] for item in counter.values()]
+
+    # Category labels
+    x_labels = tuple(counter.keys())
 
     # Width of each bar
-    width = 0.5
+    bar_width = 0.4
 
-    # Assign data to a bar plot
-    plt.bar(xlocations, counter.values(), width=width)
+    # bar locations on x-axis
+    x1_locations = np.arange(len(x_labels))
+    x2_locations = x1_locations + bar_width
 
-    # Assign labels and tick location to x-axis
-    plt.xticks(xlocations + width / 2, labels, rotation=90)
+    # assigning data to a bar plot
+    plt.bar(x1_locations, y1_values, width=bar_width, label = "Total")
+    plt.bar(x2_locations, y2_values, width=bar_width, label = "Unresolved")
 
-    # Give some more room so the labels aren't cut off in the graph
+    # Assigning labels and tick location to x-axis
+    plt.xlabel('Incident Category', fontweight='bold')
+    plt.ylabel('Incident Count', fontweight='bold')
+    plt.xticks(x1_locations + bar_width/2, x_labels, rotation=90)
+
+    # Giving some more room below x-axis
     plt.subplots_adjust(bottom=0.4)
 
-    # Make the overall graph/figure larger
+    # Making the overall graph/figure larger
     plt.rcParams['figure.figsize'] = 12, 8
 
-    # Save the graph!
-    # If you look at new-coder/dataviz/tutorial_source, you should see
-    # the PNG file, "Type.png".  This is our graph!
-    plt.savefig("C:/Users/aagga/Documents/SmallProjects/PythonApps/Data_visualization/output/Type.png")
+    plt.legend()
+    file_name = os.path.join(output_dir, TYPE_PLOT_FILENAME)
+    plt.savefig(file_name)
+    plt.show()
 
-    # Close figure
-    plt.clf()
+def main(input_file, output_dir):
+    parsed_data = parse(input_file)
+    visualize_days(parsed_data, output_dir)
+    visualize_type(parsed_data, output_dir)
 
-
-def main():
-    visualize_days()
-    visualize_type()
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    input_file = sys.argv[1]
+    output_dir = sys.argv[2]
+    main(input_file, output_dir)
